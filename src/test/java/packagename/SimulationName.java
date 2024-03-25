@@ -6,8 +6,6 @@ import static io.gatling.javaapi.http.HttpDsl.*;
 import io.gatling.javaapi.core.*;
 import io.gatling.javaapi.http.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
@@ -34,15 +32,7 @@ public class SimulationName extends Simulation {
                 String secretName = "my-secret-name";
                 Region region = Region.of("eu-west-3");
 
-                AwsBasicCredentials awsCredentials =
-                    AwsBasicCredentials.create(
-                        System.getenv("AWS_ACCESS_KEY_ID"), System.getenv("AWS_SECRET_ACCESS_KEY"));
-
-                SecretsManagerClient client =
-                    SecretsManagerClient.builder()
-                        .region(region)
-                        .credentialsProvider(StaticCredentialsProvider.create(awsCredentials))
-                        .build();
+                SecretsManagerClient client = SecretsManagerClient.builder().region(region).build();
 
                 GetSecretValueRequest getSecretValueRequest =
                     GetSecretValueRequest.builder().secretId(secretName).build();
