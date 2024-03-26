@@ -17,6 +17,27 @@ public class SimulationName extends Simulation {
 
   public static final ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<>();
 
+  @Override
+  public void before() {
+    String secretName = "my-secret-name";
+    Region region = Region.of("eu-west-3");
+
+    SecretsManagerClient client = SecretsManagerClient.builder().region(region).build();
+
+    GetSecretValueRequest getSecretValueRequest =
+        GetSecretValueRequest.builder().secretId(secretName).build();
+    GetSecretValueResponse getSecretValueResponse;
+
+    try {
+      getSecretValueResponse = client.getSecretValue(getSecretValueRequest);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+
+    String secret = getSecretValueResponse.secretString();
+    queue.offer(secret);
+  }
+
   HttpProtocolBuilder httpProtocol =
       http.baseUrl("https://computer-database.gatling.io")
           .acceptHeader("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
@@ -24,30 +45,6 @@ public class SimulationName extends Simulation {
           .acceptEncodingHeader("gzip, deflate")
           .userAgentHeader(
               "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/119.0");
-
-  ScenarioBuilder readSecret =
-      scenario("Read Secret")
-          .exec(
-              session -> {
-                String secretName = "my-secret-name";
-                Region region = Region.of("eu-west-3");
-
-                SecretsManagerClient client = SecretsManagerClient.builder().region(region).build();
-
-                GetSecretValueRequest getSecretValueRequest =
-                    GetSecretValueRequest.builder().secretId(secretName).build();
-                GetSecretValueResponse getSecretValueResponse;
-
-                try {
-                  getSecretValueResponse = client.getSecretValue(getSecretValueRequest);
-                } catch (Exception e) {
-                  throw new RuntimeException(e);
-                }
-
-                String secret = getSecretValueResponse.secretString();
-                queue.offer(secret);
-                return session;
-              });
 
   ScenarioBuilder users =
       scenario("Scenario 1")
@@ -67,7 +64,6 @@ public class SimulationName extends Simulation {
               http("Home").get("/computers"));
 
   {
-    setUp(readSecret.injectOpen(atOnceUsers(1)).andThen(users.injectOpen(atOnceUsers(vu))))
-        .protocols(httpProtocol);
+    setUp(users.injectOpen(atOnceUsers(vu))).protocols(httpProtocol);
   }
 }
