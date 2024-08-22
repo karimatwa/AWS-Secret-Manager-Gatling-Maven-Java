@@ -5,7 +5,6 @@ import static io.gatling.javaapi.http.HttpDsl.*;
 
 import io.gatling.javaapi.core.*;
 import io.gatling.javaapi.http.*;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
@@ -14,11 +13,9 @@ import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRespon
 public class SimulationName extends Simulation {
 
   public static final int vu = Integer.getInteger("vu", 1);
+  public String secret = "";
 
-  public static final ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<>();
-
-  @Override
-  public void before() {
+  {
     String secretName = "my-secret-name";
     Region region = Region.of("eu-west-3");
 
@@ -34,15 +31,12 @@ public class SimulationName extends Simulation {
       throw new RuntimeException(e);
     }
 
-    String secret = getSecretValueResponse.secretString();
-    queue.offer(secret);
+    secret = getSecretValueResponse.secretString();
   }
 
   HttpProtocolBuilder httpProtocol =
       http.baseUrl("https://computer-database.gatling.io")
-          .acceptHeader("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-          .acceptLanguageHeader("en-US,en;q=0.5")
-          .acceptEncodingHeader("gzip, deflate")
+          .acceptHeader("application/json")
           .userAgentHeader(
               "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/119.0");
 
@@ -51,10 +45,8 @@ public class SimulationName extends Simulation {
           .exec(
               exec(
                   session -> {
-                    String secretString = queue.poll();
-
-                    if (secretString != null) {
-                      System.out.println("Retrieved secret string: " + secretString);
+                    if (secret != null) {
+                      System.out.println("Retrieved secret string: " + secret);
                     } else {
                       System.out.println("No secret retrieved");
                       exitHere();
